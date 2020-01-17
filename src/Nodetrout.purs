@@ -48,7 +48,6 @@ import Nodetrout.Internal.Error
   , error504
   , error505
   ) as Exports
-import Nodetrout.Internal.Request (Request) as Exports
 import Nodetrout.Internal.Router (class Router)
 import Nodetrout.Internal.Server.Node as NS
 import Nodetrout.Internal.Server.Node (serveRouter, makeRouter) as Exports

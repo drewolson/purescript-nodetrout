@@ -74,10 +74,12 @@ makeRouter
   => Router layout (Record handlers) m (Tuple MediaType content)
   => Proxy layout
   -> Record handlers
-  -> Request
+  -> NH.Request
   -> ExceptT HTTPError m (Tuple MediaType content)
-makeRouter layout handlers =
-  flip (route layout handlers) 0
+makeRouter layout handlers nodeReq = do
+  req <- liftEffect $ convertRequest nodeReq
+
+  route layout handlers req 0
 
 -- | Create a `node-http`-compatible request handler from a router
 -- | created with `makeRouter`.
@@ -86,7 +88,7 @@ serveRouter
    . Monad m
   => MonadEffect m
   => ResponseWritable content
-  => (Request -> ExceptT HTTPError m (Tuple MediaType content))
+  => (NH.Request -> ExceptT HTTPError m (Tuple MediaType content))
   -> (m ~> Aff)
   -> (Error -> Effect Unit)
   -> NH.Request
@@ -106,8 +108,7 @@ serveRouter router runM onError req res =
         onError error
   in
     runAff_ requestCallback $ runM do
-      request <- liftEffect $ convertRequest req
-      result <- runExceptT $ router request
+      result <- runExceptT $ router req
       liftEffect $ case result of
         Left { statusCode, overview, details } -> do
           setStatusCode res statusCode
