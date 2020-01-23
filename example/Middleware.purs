@@ -2,7 +2,7 @@ module Example.Middleware where
 
 import Prelude
 
-import Control.Monad.Except (ExceptT)
+import Control.Monad.Except (ExceptT, throwError)
 import Control.Monad.Reader (class MonadReader, ReaderT, local, runReaderT)
 import Control.Monad.Reader.Class (class MonadAsk, ask)
 import Data.Maybe (Maybe(..))
@@ -11,8 +11,10 @@ import Effect (Effect)
 import Effect.Aff (Aff)
 import Effect.Class (class MonadEffect)
 import Effect.Console (log)
+import Foreign.Object as Object
 import Node.HTTP (Request, createServer, listen)
-import Nodetrout (HTTPError, makeRouter, serveRouter)
+import Node.HTTP as HTTP
+import Nodetrout (HTTPError, error422, makeRouter, serveRouter)
 import Text.Smolder.HTML (span)
 import Text.Smolder.Markup (text)
 import Type.Proxy (Proxy(..))
@@ -56,8 +58,10 @@ middleware
    . (Request -> ExceptT HTTPError AppM content)
   -> Request
   -> ExceptT HTTPError AppM content
-middleware next req =
-  local addGreeting $ next req
+middleware next req = do
+  if Object.member "magic" $ HTTP.requestHeaders req
+    then local addGreeting $ next req
+    else throwError error422
   where
     addGreeting :: Message -> Message
     addGreeting (Message m) = Message $ m <> " From middleware!"
